@@ -1,0 +1,12 @@
+*~
+**/.DS_Store
+
+# Ignore bundler config.
+/.bundle
+
+/stage
+/extracted
+/markdown
+/*.epub
+/*.pdf
+/tmp

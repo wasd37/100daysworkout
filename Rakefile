@@ -1,5 +1,6 @@
 require 'nokogiri'
 require 'fileutils'
+require 'active_support/core_ext/object/blank'
 require 'naturalsorter'
 
 =begin
@@ -10,13 +11,14 @@ https://gist.github.com/ryangray/1882525
 
 =end
 
-desc "Extract articles from original HTML"
+desc "Extract and organize articles from original HTML"
 
 task :extract do
 
   sources    = Dir["src/**/*.html"]
   output_dir = 'extracted'
 
+  # Nil or section Nokogiri::XML::Element
   def extract_article(raw_html)
     doc = Nokogiri::HTML(raw_html)
 
@@ -25,23 +27,47 @@ task :extract do
         section.css('footer').remove
         section.css('p #lnkNextDay').remove
       end
+    end
+  end
 
-      section
+  # Nil or stripped header
+  def extract_header(raw_html)
+    doc    = Nokogiri::HTML(raw_html)
+    header = doc.css('.dayname').first
+
+    if header
+      stripped = header.text.strip
+      stripped.blank? ? nil : stripped
     end
   end
 
   puts "Cleaning old output dir: #{output_dir} "
   FileUtils.rm_f(output_dir)
 
+  STATIC_HEADERS = {
+    'reasons' => '5 причин пройти 100-дневный воркаут',
+    'aims'    => 'Цели 100-дневного воркаута',
+    'organiz' => 'Организационные моменты',
+    'START'   => 'О программе'
+  }
+
   sources.each do |file_name|
-    print "Extracting content from file: #{file_name} ..."
+    puts "Extracting content from file: #{file_name} ..."
 
     raw_html          = File.read(file_name)
     extracted_content = extract_article(raw_html)
 
-    if extracted_content.nil?
-      puts "SKIPPED"
-      next
+    unless extracted_content
+      puts 'SKIPPED'; next
+    end
+
+    header = extract_header(raw_html) || STATIC_HEADERS[File.basename(file_name, '.html')]
+
+    if header
+      puts "Header: \"#{header}\""
+      extracted_content = ('<h1>%s</h1>' % [header]) << extracted_content.to_html
+    else
+      warn "No header for #{file_name} found"
     end
 
     new_file_name = file_name.sub(%r{^src}, output_dir)
@@ -52,8 +78,6 @@ task :extract do
     end
 
     File.write(new_file_name, extracted_content)
-
-    puts "OK"
   end
 end
 
@@ -113,6 +137,8 @@ task :convert do
   end
 end
 
+# @WIP
+
 desc 'Build EPUB'
 task :build_epub do
   # puts `pandoc --version`
@@ -127,8 +153,8 @@ task :build_epub do
   # -s, --standalone
   # Produce  output  with an appropriate header and footer (e.g.  a standalone HTML, LaTeX, or RTF file, not a fragment).  This option is set automatically for pdf, epub, epub3, fb2, docx, and odt out-
   cmd = 'pandoc -f html -t markdown ' + files.join(" ")
-  cmd   += ' | '
-  cmd   += 'pandoc --standalone -f markdown -o test.epub'
+  cmd += ' | '
+  cmd += 'pandoc --standalone -f markdown -o test.epub'
 
   exec cmd
 

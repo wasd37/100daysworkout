@@ -14,7 +14,7 @@ https://gist.github.com/ryangray/1882525
 class FilesOrganizer
   @@new_root = 'extracted'
 
-  SECTIONS   = %w{introduction basic advanced turbo outro}
+  SECTIONS       = %w{introduction basic advanced turbo outro}
   SECTION_TITLES = [
     'Подготовка',
     'Базовый блок',
@@ -24,16 +24,18 @@ class FilesOrganizer
   ]
 
   DIRECTORY_MAP = {
-    /^(intro|reasons|organizing|aims)$/ => 0,
-    /^d((?:[1-9])|(?:[1-4][0-9]))$/     => 1,
-    /^d((?:[5-8][0-9])|(?:[9][0-1]))$/  => 2,
-    /^d([9][2-8])$/                     => 3,
-    /^d(99|100)$/                       => 4
+    /^(\d\-(?:intro|reasons|organizing|aims))$/ => 0,
+    /^d((?:[1-9])|(?:[1-4][0-9]))$/             => 1,
+    /^d((?:[5-8][0-9])|(?:[9][0-1]))$/          => 2,
+    /^d([9][2-8])$/                             => 3,
+    /^d(99|100)$/                               => 4
   }
 
   RENAME = {
-    'start'   => 'intro',
-    'organiz' => 'organizing'
+    'start'   => '1-intro',
+    'reasons' => '2-reasons',
+    'aims'    => '3-aims',
+    'organiz' => '4-organizing'
   }
 
   def self.rename_filename(old_filename)
@@ -49,8 +51,8 @@ class FilesOrganizer
   end
 
   def self.new_file_path(old_file_path)
-    normalized = rename_filename(old_file_path)
-    old_basename   = File.basename(normalized, '.html')
+    normalized    = rename_filename(old_file_path)
+    old_basename  = File.basename(normalized, '.html')
     new_file_path = nil
 
     DIRECTORY_MAP.each do |regexp, chapter_id|
@@ -62,7 +64,7 @@ class FilesOrganizer
           new_basename = "%03d" % new_basename.to_i
         end
 
-        chapter_dir  = build_section_dir_name(chapter_id)
+        chapter_dir   = build_section_dir_name(chapter_id)
         new_file_path = "#{@@new_root}/#{chapter_dir}/#{new_basename}.html"
         break
       end
@@ -96,6 +98,7 @@ task :extract do
       if section
         section.css('footer').remove
         section.css('p #lnkNextDay').remove
+        section.css('#pagePlaceHolder_imgCover').remove
       end
     end
   end
@@ -145,7 +148,7 @@ task :extract do
       warn "No header for #{src_filename} found"
     end
 
-    new_dir_name  = File.dirname(new_filename)
+    new_dir_name = File.dirname(new_filename)
 
     unless Dir.exists?(new_dir_name)
       FileUtils.mkdir_p(new_dir_name)
@@ -167,7 +170,7 @@ task :convert do
   i = 0
   sources.each do |source_file|
     target_filename = source_file.sub(%r{^extracted}, target_dir).sub(%r{\.html$}, '.md')
-    target_dir_name  = File.dirname(target_filename)
+    target_dir_name = File.dirname(target_filename)
 
     unless Dir.exists?(target_dir_name)
       FileUtils.mkdir_p(target_dir_name)
@@ -196,17 +199,25 @@ task :convert do
       # Replace "\*" (listas escaped) with simple markdown "-"
       's:^ ?\\\[*]:-:',
       # Replace images path (TODO: update)
-      's:(\.\./)?(img/[^.]+\.jpg):\1../src/\2:',
+      's:(\.\./)?(img/[^.]+\.jpg):src/\2:',
       # Replace **\[1\]** -> 1.
       's:\*\*\\\\\[(\d+)\\\\\]\*\*:\1.:g',
+
       # Replace \[4\] -> 4. (keep separate)
       's:\\\\\[(\d+)\\\\\]:\1.:g',
+
       # Replace **1)** -> 1.
       's:\*\*(\d+)\\)\*\*:\1.:g',
+
+      # Replace **1) -> **1.
+      's:\*\*(\d+)\\)(?=[^*]):\1.:g',
+
       # Replace **2.** -> 1.
       's:\*\*(\d+)(\.?)\*\*:\1.:g',
+
       # Replace 1.  \* -> 1.
       's:^(\d+)\. *\\\\\*:\1.:g',
+
       # Shift header level by one
       's:^(#+):\1#:g'
     ]
@@ -228,10 +239,10 @@ task :convert do
   # Placing section title files
 
   FilesOrganizer::SECTIONS.each_with_index do |_, chapter_id|
-    section_dir = FilesOrganizer.build_section_dir_name(chapter_id)
-    filename = '%s/%s/_section.md' % [target_dir, section_dir]
+    section_dir   = FilesOrganizer.build_section_dir_name(chapter_id)
+    filename      = '%s/%s.md' % [target_dir, section_dir]
     section_title = FilesOrganizer::SECTION_TITLES[chapter_id]
-    content = "# %s\n" % section_title
+    content       = "# %s\n" % section_title
     File.write(filename, content)
   end
 end
@@ -242,20 +253,33 @@ desc 'Build EPUB'
 task :build_epub do
   # puts `pandoc --version`
 
-  files = Naturalsorter::Sorter.sort(Dir["contents/*.html"])
-  files += Naturalsorter::Sorter.sort(Dir["contents/days/*.html"])
-  files << 'metadata.yml'
 
+  files = ['metadata.yml'] + Naturalsorter::Sorter.sort(Dir["markdown/**/*.md"])
+  # files += Naturalsorter::Sorter.sort(Dir["contents/days/*.html"])
+
+  puts files
   #
   # cmd = 'pandoc --standalone -o test.epub'
 
   # -s, --standalone
   # Produce  output  with an appropriate header and footer (e.g.  a standalone HTML, LaTeX, or RTF file, not a fragment).  This option is set automatically for pdf, epub, epub3, fb2, docx, and odt out-
-  cmd = 'pandoc -f html -t markdown ' + files.join(" ")
-  cmd += ' | '
-  cmd += 'pandoc --standalone -f markdown -o test.epub'
+  args = [
+    '--standalone',
+    '--toc --toc-depth=2',
+    '--epub-stylesheet=book.css',
+    '--epub-cover=cover.jpg',
+    '-o test.epub',
+    files.join(' ')
+  ]
 
+  cmd = "pandoc #{args.join(' ')}"
+
+  puts cmd
   exec cmd
 
-  puts files
+  # puts files
 end
+
+
+desc "Run all"
+task all: [:extract, :convert, :build_epub]

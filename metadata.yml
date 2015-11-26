@@ -1,8 +1,7 @@
 ---
-title: '100 дневный воркаут'
+title: 100 дневный воркаут
+author: Антон Кучумов
 publisher: 'http://workout.su'
-# see https://tools.ietf.org/html/bcp47
-lang: ru-RU
-stylesheet:
-cover-image:
----
+rights:  Creative Commons Non-Commercial Share Alike 3.0
+language: ru-RU
+...

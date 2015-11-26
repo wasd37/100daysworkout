@@ -1,0 +1,99 @@
+body {
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-size: 10pt;
+    margin: 5%;
+    text-align: justify;
+}
+
+.author {
+    text-align: center;
+}
+
+.title {
+    text-align: center;
+    text-transform: uppercase;
+}
+
+/*url*/
+.publisher {
+    text-align: center;
+    font-weight: bolder;
+}
+
+.rights {
+    display: none;
+}
+
+code {
+    font-family: monospace;
+}
+
+.section.level1,
+.section.level2,
+.section.level3,
+.section.level4,
+.section.level5,
+.section.level6 {
+    page-break-after: avoid;
+}
+
+h1, h2, h3, h4, h5, h6 {
+
+}
+
+.section.level1, .section.level2, .section.level3 {
+    page-break-before: always;
+}
+
+.section.level1 + .section.level2,
+.section.level1 + .section.level2 + .section.level3,
+.section.level2 + .section.level2 {
+    page-break-before: auto;
+}
+
+@media screen {
+    a:hover {
+        text-decoration: underline;
+    }
+}
+
+h1 {
+    text-align: left;
+}
+
+h2 {
+    text-align: left;
+}
+
+h3 {
+    text-align: left;
+}
+
+h4 {
+    text-align: left;
+}
+
+h5 {
+    text-align: left;
+}
+
+h6 {
+    text-align: left;
+}
+
+ol.toc {
+    text-align: left;
+    padding: 0;
+    margin-left: 1em;
+    line-height: 1.6;
+}
+
+ol.toc > li {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+ol.toc > li a {
+    color: blue;
+}

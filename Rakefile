@@ -1,11 +1,21 @@
 require 'nokogiri'
 require 'fileutils'
+require 'naturalsorter'
+
+=begin
+
+STAGE
+A clean, minimal CSS stylesheet for Markdown, Pandoc and MultiMarkdown HTML output.
+https://gist.github.com/ryangray/1882525
+
+=end
 
 desc "Extract articles from original HTML"
 
 task :extract do
-  sources    = Dir["*.html", "days/**/*.html"]
-  output_dir = 'contents'
+
+  sources    = Dir["src/**/*.html"]
+  output_dir = 'extracted'
 
   def extract_article(raw_html)
     doc = Nokogiri::HTML(raw_html)
@@ -20,18 +30,107 @@ task :extract do
     end
   end
 
-  # Dirty hack
-
-  FileUtils.mkdir_p(output_dir)
-  FileUtils.mkdir_p(output_dir + '/days')
+  puts "Cleaning old output dir: #{output_dir} "
+  FileUtils.rm_f(output_dir)
 
   sources.each do |file_name|
-    puts "Extracting content from file: #{file_name} ..."
+    print "Extracting content from file: #{file_name} ..."
 
     raw_html          = File.read(file_name)
     extracted_content = extract_article(raw_html)
-    output_file       = '%s/%s' % [output_dir, file_name]
 
-    File.write(output_file, extracted_content)
+    if extracted_content.nil?
+      puts "SKIPPED"
+      next
+    end
+
+    new_file_name = file_name.sub(%r{^src}, output_dir)
+    new_dir_name  = File.dirname(new_file_name)
+
+    unless Dir.exists?(new_dir_name)
+      FileUtils.mkdir_p(new_dir_name)
+    end
+
+    File.write(new_file_name, extracted_content)
+
+    puts "OK"
   end
+end
+
+
+desc 'convert to MD'
+task :convert do
+  sources    = Dir["extracted/**/*.html"]
+  target_dir = 'markdown'
+
+  i = 0
+  sources.each do |source_file|
+    target_file_name = source_file.sub(%r{^extracted}, target_dir).sub(%r{\.html$}, '.md')
+    target_dir_name  = File.dirname(target_file_name)
+
+    unless Dir.exists?(target_dir_name)
+      FileUtils.mkdir_p(target_dir_name)
+    end
+
+    # Pandoc extensions:
+    # - header_attributes: Цель №2. Повысить уровень физической подготовки {#цель-2.-повысить-уровень-физической-подготовки}
+    # - raw_html - disable HTML at all
+
+    options = %w{
+      +blank_before_header
+      +blank_before_blockquote
+      -raw_html
+    }
+
+    # -  --no-highlight - Disables syntax highlighting for code blocks and inlines, even when a language attribute is given.
+    # Regex lookaround: http://www.regular-expressions.info/lookaround.html
+    cmd     = 'pandoc -f html -t markdown_strict%s --no-wrap --no-highlight --atx-headers --normalize %s'
+    cmd     = cmd % [options.join, source_file]
+
+    seds = [
+      # Remove first single space in a line
+      's:^ ?+(?! )::',
+      # Remove strange double spaces in a line
+      's:(^  \n):\n:',
+      # Replace "\*" (listas escaped) with simple markdown "-"
+      's:^ ?\\\[*]:-:',
+      # Replace images path (TODO: update)
+      's:(\.\./)?(img/[^.]+\.jpg):\1../src/\2:',
+    ]
+
+    # NOTE ; inside code string added
+    cmd  += " | perl -p -e '#{seds.join('; ')}'"
+    # Remove several empty lines in a row
+    cmd  += " | cat -s"
+    cmd  += ' > %s' % [target_file_name]
+
+    puts cmd
+    system cmd
+
+    i += 1
+    # Devmode
+    # break if i == 10
+  end
+end
+
+desc 'Build EPUB'
+task :build_epub do
+  # puts `pandoc --version`
+
+  files = Naturalsorter::Sorter.sort(Dir["contents/*.html"])
+  files += Naturalsorter::Sorter.sort(Dir["contents/days/*.html"])
+  files << 'metadata.yml'
+
+  #
+  # cmd = 'pandoc --standalone -o test.epub'
+
+  # -s, --standalone
+  # Produce  output  with an appropriate header and footer (e.g.  a standalone HTML, LaTeX, or RTF file, not a fragment).  This option is set automatically for pdf, epub, epub3, fb2, docx, and odt out-
+  cmd = 'pandoc -f html -t markdown ' + files.join(" ")
+  cmd   += ' | '
+  cmd   += 'pandoc --standalone -f markdown -o test.epub'
+
+  exec cmd
+
+  puts files
 end

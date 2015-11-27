@@ -91,6 +91,7 @@ task :extract do
   target_dir = 'extracted'
 
   # Nil or section Nokogiri::XML::Element
+  # Nokogiri cheatsheet: https://github.com/sparklemotion/nokogiri/wiki/Cheat-sheet
   def extract_article(raw_html)
     doc = Nokogiri::HTML(raw_html)
 
@@ -115,9 +116,11 @@ task :extract do
         section.css('.bbcode_quote_head + .bbcode_quote_body').each do |bq_body|
           header = bq_body.previous_element
           header.remove
-          header.name = 'h5'
-          bq_body.prepend_child(header)
+          header.name = 'strong'
+          bq_body.prepend_child('<p>%s</p>' % header)
           bq_body.name = 'blockquote'
+          # Make sure we have space before blockquote (89 chapter bug)
+          bq_body.add_previous_sibling('<br><br>')
         end
       end
     end
@@ -163,7 +166,7 @@ task :extract do
 
     if header
       puts "Header: \"#{header}\""
-      extracted_content = ('<h1>%s</h1>' % header) << extracted_content.to_html
+      extracted_content.prepend_child('<h1>%s</h1>' % header)
     else
       warn "No header for #{src_filename} found"
     end
@@ -174,7 +177,7 @@ task :extract do
       FileUtils.mkdir_p(new_dir_name)
     end
 
-    File.write(new_filename, extracted_content)
+    File.write(new_filename, extracted_content.to_html)
   end
 end
 
@@ -184,6 +187,7 @@ task :convert do
   sources    = Dir["extracted/**/*.html"]
   # sources    = ['extracted/2-basic/017.html']
   # sources    = ['extracted/3-advanced/050.html']
+  # sources    = ['extracted/3-advanced/089.html']
   # sources    = ['extracted/2-basic/001.html']
   target_dir = 'markdown'
 
@@ -214,14 +218,16 @@ task :convert do
     cmd     = cmd % [options.join, source_file]
 
     seds = [
-      # Remove first single space in a line
-      's:^ ?+(?! )::',
+      # Remove first spaces in a line
+      # NOTE: change this if <pre> or <code> will be used
+      's:^ +::g',
 
-      # Remove strange double spaces in a line
-      's:(^  \n):\n:',
+      # \*\*\* Важно \*\*\* -> ВАЖНО
+      's:(\\\\\*){2,} *([^\*]+?) ?(\\\\\*){2,}:\2:g',
 
-      # \*\*\* Важно \*\*\* -> **ВАЖНО**
-      's:(\\\\\*){2,} *([^\*]+?) ?(\\\\\*){2,}:**\2**:g',
+      #
+      # LISTS
+      #
 
       # Replace "\*" (lists escaped) with simple markdown "-"
       's:^ *\\\\\*:-:',
@@ -253,25 +259,39 @@ task :convert do
       # Replace 1. 1. -> 1.
       's:^\d\. +(\d\.):\1 :',
 
+      # Replace **(1)** -> 1.
+      's:\*\*\\((\d+)\\)\*\*:\1.:',
+
+      # Ensure new line before list begin
+      's:^(1\.):\n\1:g',
+
+      #
+      # LISTS END
+      #
+
       # Shift header level by one
       's:^(#+):\1#:g',
 
       # Replace images path
       's:(\.\./)?(img/[^.]+\.jpg):src/\2:',
 
-      # Ensure new line before list begin
-      's:^(1\.):\n\1:g',
-
       # Ensure headers always starts from new line
       's:(#{3,}):\n\1:g',
 
       # Add day headers ID
       's:^(## День )(\d+)(.+):\1\2\3 \{#d\2\}:g',
-      # Links to days
-      's:\(d(\d+)\.html\):(#d\1):g',
 
       # Double spaces
       's: {2,}: :g',
+
+      # Replace '->' with arrow →
+      's:-&gt;:→:',
+
+      # Dashes (don't touch quoted lists)
+      's:(?<!>) - : --- :g',
+
+      # Links to days
+      's:\(d(\d+)\.html\):(#d\1):g',
     ]
 
     # NOTE ; inside code string added
@@ -285,6 +305,7 @@ task :convert do
   current_thread  = 0
   threads         = []
   cmds_per_thread = (cmds.size/THREADS_COUNT).ceil
+  cmds_per_thread = 1 if cmds_per_thread.zero?
 
   cmds.each_slice(cmds_per_thread) do |cmds_slice|
     threads << Thread.new(cmds_slice, current_thread+=1) do |thread_cmds, thread_num|
@@ -320,6 +341,7 @@ task :build_epub do
 
   args   = [
     '--standalone',
+    '--smart',
     '--toc --toc-depth=2',
     '--epub-stylesheet=assets/book.css',
     '--epub-cover=assets/cover.jpg',

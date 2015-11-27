@@ -163,7 +163,7 @@ task :extract do
 
     if header
       puts "Header: \"#{header}\""
-      extracted_content = ('<h1>%s</h1>' % header) << extracted_content.to_html
+      extracted_content.prepend_child('<h1>%s</h1>' % header)
     else
       warn "No header for #{src_filename} found"
     end
@@ -174,7 +174,11 @@ task :extract do
       FileUtils.mkdir_p(new_dir_name)
     end
 
-    File.write(new_filename, extracted_content)
+    # NOTE: Keep pretty output before saving (easy debugging)
+    # @see: https://gist.github.com/mislav/398334
+    tidy = Nokogiri::XSLT(File.open('tidy.xsl'))
+    pretty_html = tidy.transform(extracted_content.document).to_html
+    File.write(new_filename, pretty_html)
   end
 end
 
@@ -271,11 +275,17 @@ task :convert do
       # Add day headers ID
       's:^(## День )(\d+)(.+):\1\2\3 \{#d\2\}:g',
 
-      # Links to days
-      's:\(d(\d+)\.html\):(#d\1):g',
-
       # Double spaces
       's: {2,}: :g',
+
+      # Replace '->' with arrow →
+      's:-&gt;:→:',
+
+      # Dashes (don't touch quoted lists)
+      's:(?<!>) - : --- :g',
+
+      # Links to days
+      's:\(d(\d+)\.html\):(#d\1):g',
     ]
 
     # NOTE ; inside code string added
@@ -324,6 +334,7 @@ task :build_epub do
 
   args   = [
     '--standalone',
+    '--smart',
     '--toc --toc-depth=2',
     '--epub-stylesheet=assets/book.css',
     '--epub-cover=assets/cover.jpg',

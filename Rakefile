@@ -190,8 +190,7 @@ task :convert do
   puts "Cleaning old target dir: #{target_dir} "
   FileUtils.rm_rf(target_dir)
 
-  i = 0
-  sources.each do |source_file|
+  cmds = sources.map do |source_file|
     target_filename = source_file.sub(%r{^extracted}, target_dir).sub(%r{\.html$}, '.md')
     target_dir_name = File.dirname(target_filename)
 
@@ -280,13 +279,17 @@ task :convert do
     # Remove several empty lines in a row
     cmd  += " | cat -s"
     cmd  += ' > %s' % [target_filename]
+  end
 
-    puts cmd
-    system cmd
+  THREADS_COUNT   = 8
+  current_thread  = 0
+  threads         = []
+  cmds_per_thread = (cmds.size/THREADS_COUNT).ceil
 
-    i += 1
-    # Devmode
-    # break if i == 1
+  cmds.each_slice(cmds_per_thread) do |cmds_slice|
+    threads << Thread.new(cmds_slice, current_thread+=1) do |thread_cmds, thread_num|
+      thread_cmds.each { |cmd| puts "T#{thread_num}: #{cmd}"; system cmd }
+    end
   end
 
   # Placing section title files
@@ -298,6 +301,8 @@ task :convert do
     content       = "# %s\n" % section_title
     File.write(filename, content)
   end
+
+  threads.each(&:join)
 end
 
 # @WIP
@@ -307,13 +312,13 @@ task :build_epub do
 
   source = 'markdown'
   # source = 'links'
-  files = ['metadata.yml'] + Naturalsorter::Sorter.sort(Dir["#{source}/**/*.md"])
+  files  = ['metadata.yml'] + Naturalsorter::Sorter.sort(Dir["#{source}/**/*.md"])
 
   # NOTE: However, if you use wildcards on the command line, be sure to escape
   # them or put the whole filename in single quotes, to prevent them from being
   # interpreted by the shell.
 
-  args = [
+  args   = [
     '--standalone',
     '--toc --toc-depth=2',
     '--epub-stylesheet=assets/book.css',
@@ -337,7 +342,7 @@ task all: [:extract, :convert, :build_epub]
 
 desc "Extract test.epub"
 task :extract_epub do
-  file = 'test.epub'
+  file       = 'test.epub'
   target_dir = 'tmp/epub'
 
   FileUtils.rm_rf(target_dir)

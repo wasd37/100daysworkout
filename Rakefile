@@ -119,6 +119,8 @@ task :extract do
           header.name = 'strong'
           bq_body.prepend_child('<p>%s</p>' % header)
           bq_body.name = 'blockquote'
+          # Make sure we have space before blockquote (89 chapter bug)
+          bq_body.add_previous_sibling('<br><br>')
         end
       end
     end
@@ -185,6 +187,7 @@ task :convert do
   sources    = Dir["extracted/**/*.html"]
   # sources    = ['extracted/2-basic/017.html']
   # sources    = ['extracted/3-advanced/050.html']
+  # sources    = ['extracted/3-advanced/089.html']
   # sources    = ['extracted/2-basic/001.html']
   target_dir = 'markdown'
 
@@ -215,14 +218,16 @@ task :convert do
     cmd     = cmd % [options.join, source_file]
 
     seds = [
-      # Remove first single space in a line
-      's:^ ?+(?! )::',
-
-      # Remove strange double spaces in a line
-      's:(^  \n):\n:',
+      # Remove first spaces in a line
+      # NOTE: change this if <pre> or <code> will be used
+      's:^ +::g',
 
       # \*\*\* Важно \*\*\* -> ВАЖНО
       's:(\\\\\*){2,} *([^\*]+?) ?(\\\\\*){2,}:\2:g',
+
+      #
+      # LISTS
+      #
 
       # Replace "\*" (lists escaped) with simple markdown "-"
       's:^ *\\\\\*:-:',
@@ -257,14 +262,18 @@ task :convert do
       # Replace **(1)** -> 1.
       's:\*\*\\((\d+)\\)\*\*:\1.:',
 
+      # Ensure new line before list begin
+      's:^(1\.):\n\1:g',
+
+      #
+      # LISTS END
+      #
+
       # Shift header level by one
       's:^(#+):\1#:g',
 
       # Replace images path
       's:(\.\./)?(img/[^.]+\.jpg):src/\2:',
-
-      # Ensure new line before list begin
-      's:^(1\.):\n\1:g',
 
       # Ensure headers always starts from new line
       's:(#{3,}):\n\1:g',
@@ -296,6 +305,7 @@ task :convert do
   current_thread  = 0
   threads         = []
   cmds_per_thread = (cmds.size/THREADS_COUNT).ceil
+  cmds_per_thread = 1 if cmds_per_thread.zero?
 
   cmds.each_slice(cmds_per_thread) do |cmds_slice|
     threads << Thread.new(cmds_slice, current_thread+=1) do |thread_cmds, thread_num|

@@ -115,8 +115,8 @@ task :extract do
         section.css('.bbcode_quote_head + .bbcode_quote_body').each do |bq_body|
           header = bq_body.previous_element
           header.remove
-          header.name = 'h5'
-          bq_body.prepend_child(header)
+          header.name = 'strong'
+          bq_body.prepend_child('<p>%s</p>' % header)
           bq_body.name = 'blockquote'
         end
       end
@@ -220,8 +220,8 @@ task :convert do
       # Remove strange double spaces in a line
       's:(^  \n):\n:',
 
-      # \*\*\* Важно \*\*\* -> **ВАЖНО**
-      's:(\\\\\*){2,} *([^\*]+?) ?(\\\\\*){2,}:**\2**:g',
+      # \*\*\* Важно \*\*\* -> ВАЖНО
+      's:(\\\\\*){2,} *([^\*]+?) ?(\\\\\*){2,}:\2:g',
 
       # Replace "\*" (lists escaped) with simple markdown "-"
       's:^ *\\\\\*:-:',

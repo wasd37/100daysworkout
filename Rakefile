@@ -253,6 +253,9 @@ task :convert do
       # Replace 1. 1. -> 1.
       's:^\d\. +(\d\.):\1 :',
 
+      # Replace **(1)** -> 1.
+      's:\*\*\\((\d+)\\)\*\*:\1.:',
+
       # Shift header level by one
       's:^(#+):\1#:g',
 

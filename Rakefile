@@ -103,6 +103,22 @@ task :extract do
         # Smileys
         section.css('img[src*="workout.su/img/smileys"]').remove
         section.css('a[href="index.html"]').remove
+
+        # BLOCKQUOTES
+
+        # We have one BQ header with : in it
+        section.css('.bbcode_quote_head').select do |element|
+          element.inner_text.strip.length < 2
+        end.each(&:remove)
+
+        # Select BQ body, and move sibled header into it
+        section.css('.bbcode_quote_head + .bbcode_quote_body').each do |bq_body|
+          header = bq_body.previous_element
+          header.remove
+          header.name = 'h5'
+          bq_body.prepend_child(header)
+          bq_body.name = 'blockquote'
+        end
       end
     end
   end
@@ -166,6 +182,8 @@ end
 desc 'convert to MD'
 task :convert do
   sources    = Dir["extracted/**/*.html"]
+  # sources    = ['extracted/2-basic/017.html']
+  # sources    = ['extracted/3-advanced/050.html']
   # sources    = ['extracted/2-basic/001.html']
   target_dir = 'markdown'
 
@@ -203,11 +221,14 @@ task :convert do
       # Remove strange double spaces in a line
       's:(^  \n):\n:',
 
-      # \*\*\* -> **
-      's:(\\\\\*){2,}:**:g',
+      # \*\*\* Важно \*\*\* -> **ВАЖНО**
+      's:(\\\\\*){2,} *([^\*]+?) ?(\\\\\*){2,}:**\2**:g',
 
       # Replace "\*" (lists escaped) with simple markdown "-"
-      's:^ ?\\\\\*:-:',
+      's:^ *\\\\\*:-:',
+
+      # Replace "> \*" (quoted lists escaped) with simple markdown "> -"
+      's:^> *\\\\\*:> -:',
 
       # Replace **\[1\]** -> 1.
       's:\*\*\\\\\[(\d+)\\\\\]\*\*:\1.:g',
@@ -219,16 +240,19 @@ task :convert do
       's:\*\*(\d+)\\)\*\*:\1.:g',
 
       # Replace **1) -> **1.
-      's:\*\*(\d+)\\)(?=[^*]):\1.:g',
+      's:(\*\*)(\d+)\\):\1\2.:g',
 
       # Replace **2.** -> 1.
       's:\*\*(\d+)(\.?)\*\*:\1.:g',
 
       # Replace 1) -> 1.
-      's:^(\d+)\\) ?:\1. :g',
+      's:^(\d+)\\) *:\1. :g',
 
-      # Replace 1.  \* -> 1.
-      's:^(\d+)\. *\\\\\*:\1.:g',
+      # Replace 1. \* -> 1.
+      's:^(\d+\.) *\\\\\*:\1:g',
+
+      # Replace 1. 1. -> 1.
+      's:^\d\. +(\d\.):\1 :',
 
       # Shift header level by one
       's:^(#+):\1#:g',
@@ -236,8 +260,19 @@ task :convert do
       # Replace images path
       's:(\.\./)?(img/[^.]+\.jpg):src/\2:',
 
+      # Ensure new line before list begin
+      's:^(1\.):\n\1:g',
+
+      # Ensure headers always starts from new line
+      's:(#{3,}):\n\1:g',
+
+      # Add day headers ID
+      's:^(## День )(\d+)(.+):\1\2\3 \{#d\2\}:g',
+      # Links to days
+      's:\(d(\d+)\.html\):(#d\1):g',
+
       # Double spaces
-      's:  : :g'
+      's: {2,}: :g',
     ]
 
     # NOTE ; inside code string added
@@ -274,8 +309,6 @@ task :build_epub do
   # source = 'links'
   files = ['metadata.yml'] + Naturalsorter::Sorter.sort(Dir["#{source}/**/*.md"])
 
-  puts files
-
   # NOTE: However, if you use wildcards on the command line, be sure to escape
   # them or put the whole filename in single quotes, to prevent them from being
   # interpreted by the shell.
@@ -296,8 +329,6 @@ task :build_epub do
 
   puts cmd
   exec cmd
-
-  # puts files
 end
 
 

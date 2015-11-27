@@ -72,6 +72,30 @@ h1 {
     font-size: 300%;
 }
 
+h2 {
+    font-size: 220%;
+}
+
+h3 {
+    font-size: 170%;
+}
+
+h4 {
+    font-size: 150%;
+}
+
+h5 {
+    font-size: 120%;
+    margin: 0.2em 0;
+}
+
+blockquote {
+    margin-left: 0;
+    margin-right: 0;
+    background: #ebebeb;
+    padding: 0.2em 1em;
+}
+
 /*it's a body tag*/
 #cover {
 

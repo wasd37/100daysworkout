@@ -98,7 +98,11 @@ task :extract do
       if section
         section.css('footer').remove
         section.css('p #lnkNextDay').remove
+        # 404 img
         section.css('#pagePlaceHolder_imgCover').remove
+        # Smileys
+        section.css('img[src*="workout.su/img/smileys"]').remove
+        section.css('a[href="index.html"]').remove
       end
     end
   end
@@ -117,11 +121,11 @@ task :extract do
   puts "Cleaning old target dir: #{target_dir} "
   FileUtils.rm_rf(target_dir)
 
+  # START.html has its own h1 header
   STATIC_HEADERS = {
     'reasons' => '5 причин пройти 100-дневный воркаут',
     'aims'    => 'Цели 100-дневного воркаута',
-    'organiz' => 'Организационные моменты',
-    'START'   => 'О программе'
+    'organiz' => 'Организационные моменты'
   }
 
   sources.each do |src_filename|
@@ -162,6 +166,7 @@ end
 desc 'convert to MD'
 task :convert do
   sources    = Dir["extracted/**/*.html"]
+  # sources    = ['extracted/2-basic/001.html']
   target_dir = 'markdown'
 
   puts "Cleaning old target dir: #{target_dir} "
@@ -194,12 +199,16 @@ task :convert do
     seds = [
       # Remove first single space in a line
       's:^ ?+(?! )::',
+
       # Remove strange double spaces in a line
       's:(^  \n):\n:',
-      # Replace "\*" (listas escaped) with simple markdown "-"
-      's:^ ?\\\[*]:-:',
-      # Replace images path (TODO: update)
-      's:(\.\./)?(img/[^.]+\.jpg):src/\2:',
+
+      # \*\*\* -> **
+      's:(\\\\\*){2,}:**:g',
+
+      # Replace "\*" (lists escaped) with simple markdown "-"
+      's:^ ?\\\\\*:-:',
+
       # Replace **\[1\]** -> 1.
       's:\*\*\\\\\[(\d+)\\\\\]\*\*:\1.:g',
 
@@ -215,11 +224,20 @@ task :convert do
       # Replace **2.** -> 1.
       's:\*\*(\d+)(\.?)\*\*:\1.:g',
 
+      # Replace 1) -> 1.
+      's:^(\d+)\\) ?:\1. :g',
+
       # Replace 1.  \* -> 1.
       's:^(\d+)\. *\\\\\*:\1.:g',
 
       # Shift header level by one
-      's:^(#+):\1#:g'
+      's:^(#+):\1#:g',
+
+      # Replace images path
+      's:(\.\./)?(img/[^.]+\.jpg):src/\2:',
+
+      # Double spaces
+      's:  : :g'
     ]
 
     # NOTE ; inside code string added
@@ -251,23 +269,25 @@ end
 
 desc 'Build EPUB'
 task :build_epub do
-  # puts `pandoc --version`
 
-
-  files = ['metadata.yml'] + Naturalsorter::Sorter.sort(Dir["markdown/**/*.md"])
-  # files += Naturalsorter::Sorter.sort(Dir["contents/days/*.html"])
+  source = 'markdown'
+  # source = 'links'
+  files = ['metadata.yml'] + Naturalsorter::Sorter.sort(Dir["#{source}/**/*.md"])
 
   puts files
-  #
-  # cmd = 'pandoc --standalone -o test.epub'
 
-  # -s, --standalone
-  # Produce  output  with an appropriate header and footer (e.g.  a standalone HTML, LaTeX, or RTF file, not a fragment).  This option is set automatically for pdf, epub, epub3, fb2, docx, and odt out-
+  # NOTE: However, if you use wildcards on the command line, be sure to escape
+  # them or put the whole filename in single quotes, to prevent them from being
+  # interpreted by the shell.
+
   args = [
     '--standalone',
     '--toc --toc-depth=2',
-    '--epub-stylesheet=book.css',
-    '--epub-cover=cover.jpg',
+    '--epub-stylesheet=assets/book.css',
+    '--epub-cover=assets/cover.jpg',
+    '--epub-embed-font=assets/\'*.ttf\'',
+    # Specify the header level at which to split the EPUB into separate “chapter” files.
+    '--epub-chapter-level=2',
     '-o test.epub',
     files.join(' ')
   ]
@@ -283,3 +303,14 @@ end
 
 desc "Run all"
 task all: [:extract, :convert, :build_epub]
+
+desc "Extract test.epub"
+task :extract_epub do
+  file = 'test.epub'
+  target_dir = 'tmp/epub'
+
+  FileUtils.rm_rf(target_dir)
+  FileUtils.mkdir_p(target_dir)
+
+  `unzip #{file} -d #{target_dir}`
+end

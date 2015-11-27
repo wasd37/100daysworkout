@@ -1,0 +1,171 @@
+/*
+https://fonts.googleapis.com/css?family=PT+Serif:400,700,400italic,700italic&subset=latin,cyrillic,cyrillic-ext
+*/
+
+@font-face {
+    font-family: 'PT Serif';
+    font-style: normal;
+    font-weight: 400;
+    src: local('PT Serif'), local('PTSerif-Regular'), url('PT_Serif-Web-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'PT Serif';
+    font-style: normal;
+    font-weight: 700;
+    src: local('PT Serif Bold'), local('PTSerif-Bold'), url('PT_Serif-Web-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'PT Serif';
+    font-style: italic;
+    font-weight: 400;
+    src: local('PT Serif Italic'), local('PTSerif-Italic'), url('PT_Serif-Web-Italic.ttf');
+}
+
+@font-face {
+    font-family: 'PT Serif';
+    font-style: italic;
+    font-weight: 700;
+    src: local('PT Serif Bold Italic'), local('PTSerif-BoldItalic'), url('PT_Serif-Web-BoldItalic.ttf');
+}
+
+/*
+https://fonts.googleapis.com/css?family=Roboto+Condensed:700&subset=latin,cyrillic
+*/
+
+@font-face {
+    font-family: 'Roboto Condensed';
+    font-style: normal;
+    font-weight: 700;
+    src: local('Roboto Condensed Bold'), local('RobotoCondensed-Bold'), url('RobotoCondensed-Bold.ttf');
+}
+
+body {
+    font-family: 'PT Serif', "Helvetica", "Arial", sans-serif;
+    font-size: 10pt;
+    margin: 5%;
+    text-align: justify;
+}
+
+@media screen {
+    a:link, a:visited, a:focus, a:hover {
+        color: blue;
+    }
+
+    a {
+        text-decoration: underline;
+    }
+
+    a:hover {
+        text-decoration: none;
+    }
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto Condensed', sans-serif;
+    font-weight: 700;
+}
+
+h1 {
+    text-align: center;
+    font-size: 300%;
+}
+
+/*it's a body tag*/
+#cover {
+
+}
+
+.author {
+    text-align: center;
+}
+
+.title {
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.subtitle {
+    text-align: center;
+}
+
+.date {
+    text-align: center;
+}
+
+/*url*/
+.publisher {
+    text-align: center;
+    font-weight: bolder;
+}
+
+.rights {
+    display: none;
+}
+
+code {
+    font-family: monospace;
+}
+
+ol.toc {
+    text-align: left;
+    padding: 0;
+    margin-left: 1em;
+    line-height: 1.6;
+}
+
+ol.toc > li {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+ol.toc > li a {
+    color: blue;
+}
+
+/* h1 */
+#toc-title {
+    text-align: left;
+}
+
+/* Скипнуто. Толку мало, работает криво. @see http://stackoverflow.com/a/17803327
+https://developer.mozilla.org/en-US/docs/Web/CSS/orphans
+https://developer.mozilla.org/en-US/docs/Web/CSS/widows
+*/
+
+/*
+.section.level1,
+.section.level2,
+.section.level3,
+.section.level4,
+.section.level5,
+.section.level6 {
+    page-break-before: avoid;
+    page-break-after: avoid;
+}
+
+h1 + figure,
+h2 + figure,
+h3 + figure,
+figure > img {
+    page-break-before: avoid;
+    page-break-after: avoid;
+}
+
+h1, h2, h3 {
+    page-break-before: avoid;
+    page-break-after: avoid;
+}
+
+.section.level1, .section.level2, .section.level3 {
+    page-break-before: always;
+}
+
+.section.level1 + .section.level2,
+.section.level1 + .section.level2 + .section.level3,
+.section.level2 + .section.level2 {
+    page-break-before: auto;
+}
+*/

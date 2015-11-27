@@ -91,6 +91,7 @@ task :extract do
   target_dir = 'extracted'
 
   # Nil or section Nokogiri::XML::Element
+  # Nokogiri cheatsheet: https://github.com/sparklemotion/nokogiri/wiki/Cheat-sheet
   def extract_article(raw_html)
     doc = Nokogiri::HTML(raw_html)
 
@@ -174,11 +175,7 @@ task :extract do
       FileUtils.mkdir_p(new_dir_name)
     end
 
-    # NOTE: Keep pretty output before saving (easy debugging)
-    # @see: https://gist.github.com/mislav/398334
-    tidy = Nokogiri::XSLT(File.open('tidy.xsl'))
-    pretty_html = tidy.transform(extracted_content.document).to_html
-    File.write(new_filename, pretty_html)
+    File.write(new_filename, extracted_content.to_html)
   end
 end
 

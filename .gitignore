@@ -6,10 +6,7 @@
 
 /stage
 /extracted
-/markdown
 /*.epub
 /*.pdf
 /tmp
 
-# TODO: remove this
-/links

@@ -270,6 +270,7 @@ task :convert do
 
       # Add day headers ID
       's:^(## День )(\d+)(.+):\1\2\3 \{#d\2\}:g',
+
       # Links to days
       's:\(d(\d+)\.html\):(#d\1):g',
 

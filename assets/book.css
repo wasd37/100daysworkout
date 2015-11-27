@@ -41,10 +41,16 @@ https://fonts.googleapis.com/css?family=Roboto+Condensed:700&subset=latin,cyrill
     src: local('Roboto Condensed Bold'), local('RobotoCondensed-Bold'), url('RobotoCondensed-Bold.ttf');
 }
 
+html {
+    font-size: 62.5%;
+    line-height: normal;
+}
+
 body {
     font-family: 'PT Serif', "Helvetica", "Arial", sans-serif;
-    font-size: 10pt;
     margin: 5%;
+    font-size: 140%;
+    line-height: normal;
     text-align: justify;
 }
 
@@ -69,23 +75,28 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
     text-align: center;
-    font-size: 300%;
+    font-size: 240%;
+    line-height: normal;
 }
 
 h2 {
-    font-size: 220%;
+    font-size: 200%;
+    line-height: normal;
 }
 
 h3 {
-    font-size: 170%;
+    font-size: 160%;
+    line-height: normal;
 }
 
 h4 {
-    font-size: 150%;
+    font-size: 140%;
+    line-height: normal;
 }
 
 h5 {
     font-size: 120%;
+    line-height: normal;
     margin: 0.2em 0;
 }
 
@@ -94,6 +105,14 @@ blockquote {
     margin-right: 0;
     background: #ebebeb;
     padding: 0.2em 1em;
+}
+
+/*
+Since blockquote > hN is not supported by MD, trying to highlight first strong
+http://www.w3schools.com/cssref/css_selectors.asp
+*/
+blockquote > p:first-child strong:only-child {
+    font-family: 'Roboto Condensed', sans-serif;
 }
 
 /*it's a body tag*/
